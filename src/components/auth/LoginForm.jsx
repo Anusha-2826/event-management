@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import './LoginForm.css';
 
 const LoginForm = ({ role }) => {
@@ -13,7 +14,6 @@ const LoginForm = ({ role }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // First login request
       const loginResponse = await fetch(`http://localhost:8089/${role}s/login`, {
         method: 'POST',
         headers: {
@@ -23,17 +23,14 @@ const LoginForm = ({ role }) => {
       });
       
       if (!loginResponse.ok) {
-        throw new Error('Login failed');
+        throw new Error('Invalid credentials');
       }
   
       const loginData = await loginResponse.json();
-      console.log('Login response:', loginData);
-  
+
       if (role === 'organizer') {
-        // Get organizer details using email
         const organizerResponse = await fetch(`http://localhost:8089/organizers/getByEmail/${formData.email}`, {
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${loginData.token}`
           }
         });
@@ -43,22 +40,60 @@ const LoginForm = ({ role }) => {
         }
   
         const organizerData = await organizerResponse.json();
-        console.log('Organizer data:', organizerData);
   
         localStorage.setItem('token', loginData.token);
-        localStorage.setItem('organizerId', organizerData.organizerId); // Store the actual organizer ID
+        localStorage.setItem('organizerId', organizerData.organizerId);
         localStorage.setItem('organizerName', organizerData.name);
+        localStorage.setItem('userRole', 'organizer');
+        
+        await Swal.fire({
+          icon: 'success',
+          title: 'Login Successful!',
+          text: `Welcome back, ${organizerData.name}!`,
+          timer: 1500,
+          showConfirmButton: false
+        });
         
         navigate('/organizer');
       } else {
-        localStorage.setItem('userId', loginData.userId);
-        navigate('/user/dashboard');
+        const userResponse = await fetch(`http://localhost:8089/users/getUserByEmail/${formData.email}`, {
+          headers: {
+            'Authorization': `Bearer ${loginData.token}`
+          }
+        });
+
+        if (!userResponse.ok) {
+          throw new Error('Failed to get user details');
+        }
+
+        const userData = await userResponse.json();
+
+        localStorage.setItem('token', loginData.token);
+        localStorage.setItem('userId', userData.userId);
+        localStorage.setItem('userName', userData.name);
+        localStorage.setItem('userRole', 'user');
+        
+        await Swal.fire({
+          icon: 'success',
+          title: 'Login Successful!',
+          text: `Welcome back, ${userData.name}!`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        navigate('/user');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Invalid credentials');
+      setError(err.message || 'Invalid credentials');
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: err.message || 'Please check your credentials and try again',
+      });
     }
   };
+
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       {error && <div className="error-message">{error}</div>}
@@ -69,6 +104,7 @@ const LoginForm = ({ role }) => {
           value={formData.email}
           onChange={(e) => setFormData({...formData, email: e.target.value})}
           required
+          placeholder="Enter your email"
         />
       </div>
       <div className="form-group">
@@ -78,6 +114,7 @@ const LoginForm = ({ role }) => {
           value={formData.password}
           onChange={(e) => setFormData({...formData, password: e.target.value})}
           required
+          placeholder="Enter your password"
         />
       </div>
       <button type="submit" className="submit-btn">Login</button>

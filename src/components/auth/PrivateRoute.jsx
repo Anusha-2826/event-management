@@ -4,8 +4,8 @@ import { Navigate } from 'react-router-dom';
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   const organizerId = localStorage.getItem('organizerId');
-
-  if (!token || !organizerId) {
+  const userId = localStorage.getItem('userId');
+  if (!token || (!organizerId && !userId)) {
     return <Navigate to="/auth?role=organizer" />;
   }
 

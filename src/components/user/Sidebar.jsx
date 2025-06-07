@@ -19,7 +19,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
       <nav className="sidebar-nav">
         <button 
           className={`nav-item ${activeTab === 'events' ? 'active' : ''}`}
-          onClick={() => handleNavigation('/', 'events')}
+          onClick={() => handleNavigation('/events', 'events')}
         >
           <FaCalendarAlt /> Events
         </button>
