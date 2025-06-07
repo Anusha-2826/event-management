@@ -1,0 +1,42 @@
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+  
+  .dashboard-content {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f8f9fa;
+    overflow-y: auto;
+  }
+  
+  /* Custom scrollbar for the content area */
+  .dashboard-content::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .dashboard-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .dashboard-content::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+  }
+  
+  .dashboard-content::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+  }
+  
+  @media (max-width: 768px) {
+    .dashboard-container {
+      flex-direction: column;
+    }
+  
+    .dashboard-content {
+      padding: 1rem;
+    }
+  }
