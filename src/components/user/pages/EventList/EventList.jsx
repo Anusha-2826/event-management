@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import './EventList.css';
 
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(price);
+};
+
 const EventList = () => {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState('');
@@ -26,18 +33,76 @@ const EventList = () => {
       if (!response.ok) throw new Error('Failed to fetch events');
       const data = await response.json();
       
-      // Filter out past events and events with ticket count <= 1
       const currentDate = new Date().toISOString().split('T')[0];
       const upcomingEvents = data.filter(event => 
         event.startDate >= currentDate && event.ticketCount > 1
       ).map(event => ({
         ...event,
-        displayTicketCount: event.ticketCount - 1 // Show one less ticket than actual
+        displayTicketCount: event.ticketCount - 1
       }));
       
       setEvents(upcomingEvents);
     } catch (err) {
       setError('Failed to load events');
+    }
+  };
+
+  const handlePayment = async (event, ticketCount) => {
+    const totalAmount = event.ticketPrice * ticketCount;
+    
+    try {
+      const { value: paymentMethod } = await Swal.fire({
+        title: 'Payment Details',
+        html: `
+          <div class="payment-summary">
+            <p><strong>Event:</strong> ${event.name}</p>
+            <p><strong>Tickets:</strong> ${ticketCount}</p>
+            <p><strong>Price per ticket:</strong> ${formatPrice(event.ticketPrice)}</p>
+            <p><strong>Total Amount:</strong> ${formatPrice(totalAmount)}</p>
+          </div>
+        `,
+        input: 'select',
+        inputOptions: {
+          'CARD': 'Credit/Debit Card',
+          'UPI': 'UPI Payment',
+          'NET_BANKING': 'Net Banking'
+        },
+        inputPlaceholder: 'Select payment method',
+        showCancelButton: true,
+        confirmButtonText: 'Pay Now',
+        inputValidator: (value) => {
+          if (!value) return 'Please select a payment method';
+        }
+      });
+
+      if (!paymentMethod) return false;
+
+      await Swal.fire({
+        title: 'Processing Payment',
+        html: 'Please wait...',
+        timer: 2000,
+        timerProgressBar: true,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Payment Successful!',
+        text: `Payment of ${formatPrice(totalAmount)} completed successfully`,
+        confirmButtonColor: '#3085d6',
+      });
+
+      return true;
+    } catch (err) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Payment Failed',
+        text: 'Unable to process payment. Please try again.',
+        confirmButtonColor: '#d33',
+      });
+      return false;
     }
   };
 
@@ -80,7 +145,6 @@ const EventList = () => {
         throw new Error('Failed to update ticket count');
       }
 
-      // Update local state and remove event if actual count would be <= 1
       setEvents(prevEvents => 
         prevEvents.map(e => {
           if (e.eventId === event.eventId) {
@@ -90,7 +154,7 @@ const EventList = () => {
             } : null;
           }
           return e;
-        }).filter(Boolean) // Remove null values
+        }).filter(Boolean)
       );
     } catch (err) {
       throw new Error('Failed to update ticket count');
@@ -102,7 +166,7 @@ const EventList = () => {
       const { value: ticketCount } = await Swal.fire({
         title: 'How many tickets?',
         input: 'number',
-        inputLabel: 'Number of tickets',
+        inputLabel: `Ticket Price: ${formatPrice(event.ticketPrice)} each`,
         inputAttributes: {
           min: 1,
           max: event.displayTicketCount,
@@ -123,16 +187,23 @@ const EventList = () => {
 
       if (!ticketCount) return;
 
+      const totalAmount = event.ticketPrice * parseInt(ticketCount);
       const confirmResult = await Swal.fire({
         title: 'Confirm Booking',
-        text: `Book ${ticketCount} ticket(s) for ${event.name}?`,
+        html: `
+          <p>Book ${ticketCount} ticket(s) for ${event.name}?</p>
+          <p>Total Amount: ${formatPrice(totalAmount)}</p>
+        `,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Yes, book now!',
-        cancelButtonText: 'No, cancel'
+        confirmButtonText: 'Proceed to Payment',
+        cancelButtonText: 'Cancel'
       });
 
       if (!confirmResult.isConfirmed) return;
+
+      const paymentSuccess = await handlePayment(event, parseInt(ticketCount));
+      if (!paymentSuccess) return;
 
       const userId = localStorage.getItem('userId');
       const response = await fetch('http://localhost:8083/tickets/book', {
@@ -145,6 +216,7 @@ const EventList = () => {
           eventId: event.eventId,
           userId: parseInt(userId),
           ticketCount: parseInt(ticketCount),
+          totalAmount: totalAmount,
           cancelingDate: null,
           status: 'BOOKED'
         })
@@ -155,13 +227,6 @@ const EventList = () => {
       }
 
       await updateEventTicketCount(event, parseInt(ticketCount));
-
-      await Swal.fire({
-        icon: 'success',
-        title: 'Booking Successful!',
-        text: `Successfully booked ${ticketCount} ticket(s)!`,
-        confirmButtonColor: '#3085d6',
-      });
 
     } catch (err) {
       Swal.fire({
@@ -239,6 +304,7 @@ const EventList = () => {
               <p><strong>Date:</strong> {event.startDate} to {event.endDate}</p>
               <p><strong>Time:</strong> {event.startTime.substring(0, 5)} - {event.endTime.substring(0, 5)}</p>
               <p><strong>Available Tickets:</strong> {event.displayTicketCount}</p>
+              <p><strong>Ticket Price:</strong> {formatPrice(event.ticketPrice)}</p>
               <p className="event-description">{event.description}</p>
               <p className="event-address">{event.address}</p>
             </div>

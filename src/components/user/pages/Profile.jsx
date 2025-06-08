@@ -7,8 +7,7 @@ const Profile = () => {
   const [userData, setUserData] = useState({
     name: '',
     email: '',
-    phone: '',
-    address: ''
+    contact: ''
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -26,7 +25,7 @@ const Profile = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch(`http://localhost:8089/users/getByUserId/${userId}`, {
+      const response = await fetch(`http://localhost:8089/users/getUserById/${userId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -150,21 +149,11 @@ const Profile = () => {
           </div>
 
           <div className="form-group">
-            <label>Phone:</label>
+            <label>Contact:</label>
             <input
               type="tel"
-              name="phone"
-              value={userData.phone || ''}
-              onChange={handleInputChange}
-              readOnly={!isEditing}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Address:</label>
-            <textarea
-              name="address"
-              value={userData.address || ''}
+              name="contact"
+              value={userData.contact || ''}
               onChange={handleInputChange}
               readOnly={!isEditing}
             />

@@ -11,7 +11,12 @@ const BookedEvents = () => {
     eventId: '',
     filter: 'all'
   });
-
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(price);
+  };
   useEffect(() => {
     fetchBookedEvents();
   }, []);
@@ -235,6 +240,7 @@ const BookedEvents = () => {
       <div className="booked-events-grid">
         {filteredBookings.map(booking => {
           const isEventCompleted = new Date(booking.eventDetails.startDate) < new Date();
+          const totalAmount = booking.ticketCount * booking.eventDetails.ticketPrice;
           
           return (
             <div key={booking.ticketId} className="booking-card">
@@ -247,27 +253,31 @@ const BookedEvents = () => {
               <div className="booking-details">
                 <p><strong>Event Date:</strong> {booking.eventDetails.startDate}</p>
                 <p><strong>Location:</strong> {booking.eventDetails.location}</p>
-                <p><strong>Tickets:</strong> {booking.ticketCount}</p>
-                <p><strong>Booking Date:</strong> {new Date(booking.bookingDate).toLocaleDateString()}</p>
                 <p><strong>Category:</strong> {booking.eventDetails.category}</p>
                 <p><strong>Time:</strong> {booking.eventDetails.startTime} - {booking.eventDetails.endTime}</p>
+                <p><strong>Number of Tickets:</strong> {booking.ticketCount}</p>
+                <p><strong>Price per Ticket:</strong> {formatPrice(booking.eventDetails.ticketPrice)}</p>
+                <p className="total-amount"><strong>Total Amount:</strong> {formatPrice(totalAmount)}</p>
+                <p><strong>Booking Date:</strong> {new Date(booking.bookingDate).toLocaleDateString()}</p>
                 <p><strong>Address:</strong> {booking.eventDetails.address}</p>
               </div>
-              {!isEventCompleted && booking.status !== 'CANCELLED' ? (
-                <button 
-                  onClick={() => handleCancelTicket(booking)}
-                  className="cancel-btn"
-                >
-                  Cancel Booking
-                </button>
-              ) : isEventCompleted && booking.status !== 'CANCELLED' ? (
-                <button 
-                  onClick={() => handleFeedback(booking)}
-                  className="feedback-btn"
-                >
-                  Provide Feedback
-                </button>
-              ) : null}
+              <div className="booking-actions">
+                {!isEventCompleted && booking.status !== 'CANCELLED' ? (
+                  <button 
+                    onClick={() => handleCancelTicket(booking)}
+                    className="cancel-btn"
+                  >
+                    Cancel Booking
+                  </button>
+                ) : isEventCompleted && booking.status !== 'CANCELLED' ? (
+                  <button 
+                    onClick={() => handleFeedback(booking)}
+                    className="feedback-btn"
+                  >
+                    Provide Feedback
+                  </button>
+                ) : null}
+              </div>
             </div>
           );
         })}
@@ -276,4 +286,4 @@ const BookedEvents = () => {
   );
 };
 
-export default BookedEvents; 
+export default BookedEvents;

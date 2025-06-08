@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+
 import './LoginForm.css';
 
 const LoginForm = ({ role }) => {
@@ -17,7 +18,8 @@ const LoginForm = ({ role }) => {
       const loginResponse = await fetch(`http://localhost:8089/${role}s/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
+          
         },
         body: JSON.stringify(formData),
       });
@@ -54,7 +56,7 @@ const LoginForm = ({ role }) => {
           showConfirmButton: false
         });
         
-        navigate('/organizer');
+        navigate('/organizer/events');
       } else {
         const userResponse = await fetch(`http://localhost:8089/users/getUserByEmail/${formData.email}`, {
           headers: {
@@ -81,7 +83,7 @@ const LoginForm = ({ role }) => {
           showConfirmButton: false
         });
         
-        navigate('/user');
+        navigate('/user/events');
       }
     } catch (err) {
       console.error('Login error:', err);

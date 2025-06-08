@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import './AddEvent.css'; // We can reuse the AddEvent styles
+import Swal from 'sweetalert2';
+import './AddEvent.css';
 
 const UpdateEvent = () => {
   const { eventId } = useParams();
@@ -16,13 +17,47 @@ const UpdateEvent = () => {
     endTime: '',
     address: '',
     description: '',
-    ticketCount: ''
+    ticketCount: '',
+    ticketPrice: '' // Added new field
   });
 
   useEffect(() => {
     fetchEventDetails();
   }, [eventId]);
-
+  const handleEditNotification = async (event) => {
+      try {
+        const { value: message } = await Swal.fire({
+          title: 'Notification Message',
+          input: 'textarea',
+          inputLabel: 'Enter message for users',
+          inputPlaceholder: 'Enter your message here...',
+          inputValue: `Event "${event.name}" has been updated.`,
+          showCancelButton: true,
+          inputValidator: (value) => {
+            if (!value) return 'You need to write something!';
+          }
+        });
+  
+        if (message) {
+          await Promise.all(users.map(user => 
+            sendNotification(user.userId, event.eventId, message)
+          ));
+  
+          await Swal.fire({
+            icon: 'success',
+            title: 'Success',
+            text: 'Notifications sent successfully!',
+            timer: 1500
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to send notifications'
+        });
+      }
+    };
   const fetchEventDetails = async () => {
     try {
       const response = await fetch(`http://localhost:8081/events/getEventById/${eventId}`, {
@@ -43,6 +78,11 @@ const UpdateEvent = () => {
         endTime
       });
     } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load event details'
+      });
       setError('Failed to load event details');
     }
   };
@@ -50,11 +90,17 @@ const UpdateEvent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate dates
+      if (new Date(formData.endDate) < new Date(formData.startDate)) {
+        throw new Error('End date cannot be before start date');
+      }
+
       const eventData = {
         ...formData,
         startTime: formData.startTime + ':00',
         endTime: formData.endTime + ':00',
         ticketCount: parseInt(formData.ticketCount),
+        ticketPrice: parseFloat(formData.ticketPrice),
         organizerId: localStorage.getItem('organizerId')
       };
 
@@ -68,9 +114,22 @@ const UpdateEvent = () => {
       });
 
       if (!response.ok) throw new Error('Failed to update event');
-      navigate('/organizer');
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: 'Event updated successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      navigate('/organizer/events');
     } catch (err) {
-      setError('Failed to update event. Please try again.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.message || 'Failed to update event. Please try again.'
+      });
     }
   };
 
@@ -97,6 +156,8 @@ const UpdateEvent = () => {
               value={formData.name}
               onChange={handleChange}
               required
+              minLength={3}
+              maxLength={100}
             />
           </div>
 
@@ -110,11 +171,11 @@ const UpdateEvent = () => {
               required
             >
               <option value="">Select Category</option>
+              <option value="TECHNOLOGY">Technology</option>
               <option value="MUSIC">Music</option>
               <option value="SPORTS">Sports</option>
-              <option value="THEATRE">Theatre</option>
-              <option value="CONFERENCE">Conference</option>
-              <option value="WORKSHOP">Workshop</option>
+              <option value="ARTS">Arts</option>
+              <option value="BUSINESS">Business</option>
             </select>
           </div>
 
@@ -127,6 +188,8 @@ const UpdateEvent = () => {
               value={formData.location}
               onChange={handleChange}
               required
+              minLength={2}
+              maxLength={100}
             />
           </div>
 
@@ -150,6 +213,7 @@ const UpdateEvent = () => {
               name="endDate"
               value={formData.endDate}
               onChange={handleChange}
+              min={formData.startDate}
               required
             />
           </div>
@@ -190,6 +254,21 @@ const UpdateEvent = () => {
               required
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="ticketPrice">Ticket Price (₹)</label>
+            <input
+              type="number"
+              id="ticketPrice"
+              name="ticketPrice"
+              value={formData.ticketPrice}
+              onChange={handleChange}
+              min="0"
+              step="0.01"
+              required
+              placeholder="Enter price in ₹"
+            />
+          </div>
         </div>
 
         <div className="form-group full-width">
@@ -200,6 +279,8 @@ const UpdateEvent = () => {
             value={formData.address}
             onChange={handleChange}
             required
+            minLength={10}
+            maxLength={200}
           />
         </div>
 
@@ -211,6 +292,8 @@ const UpdateEvent = () => {
             value={formData.description}
             onChange={handleChange}
             required
+            minLength={20}
+            maxLength={500}
           />
         </div>
 
